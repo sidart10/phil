@@ -34,6 +34,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import archive  # noqa: E402
 import pmapi  # noqa: E402
+import venue_pmus  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PROTECTED = json.loads((ROOT / "config" / "protected.json").read_text())
@@ -176,6 +177,73 @@ def keep(m, seen, banned, args):
     }
 
 
+PMUS_GAME_PRIORITY = {"moneyline": 0, "drawable_outcome": 0, "spreads": 1, "spread": 1, "totals": 1, "total": 1}
+
+
+def pmus_candidates(min_end, horizon, banned, seen):
+    """Polymarket US markets admissible under the same protected rules as
+    keep(): not banned, resolving between min_end and horizon, every side's
+    price inside the entry bounds. The gateway has no volume figures, so a
+    market also needs a two-sided quote no wider than max_spread. At most
+    max_candidates are kept: game winners first, then lines, then the rest,
+    tightest spread first within each group."""
+    cfg = (PROTECTED.get("venues") or {}).get("pmus") or {}
+    if not cfg.get("enabled"):
+        return []
+    try:
+        # A game listed up to GAME_HOURS before min_end can still be running.
+        raw = venue_pmus.list_markets(
+            min_end - dt.timedelta(hours=venue_pmus.GAME_HOURS), horizon)
+    except RuntimeError as e:
+        print(f"scan: Polymarket US listing failed: {e}", file=sys.stderr)
+        return []
+    LISTED["pmus"] += len(raw)
+    picked = []
+    for rec in raw:
+        m = venue_pmus.normalize(rec)
+        if m is None or m["id"] in seen:
+            continue
+        q = m["question"]
+        if any(p.search(q) for p in banned):
+            continue
+        end = venue_pmus._parse_ts(m["endDate"])
+        if end is None or not min_end <= end <= horizon:
+            continue
+        prices = json.loads(m["outcomePrices"] or "[]")
+        if len(prices) != 2 or max(prices) > PROTECTED["max_entry_price"] \
+                or min(prices) < PROTECTED["min_entry_price"]:
+            continue
+        bid, ask = m["bestBid"], m["bestAsk"]
+        if bid is None or ask is None or ask - bid > cfg.get("max_spread", 0.05) + 1e-9:
+            continue
+        seen.add(m["id"])
+        rank = (PMUS_GAME_PRIORITY.get((m["marketType"] or "").lower(), 2), ask - bid)
+        picked.append((rank, m, prices))
+    picked.sort(key=lambda t: t[0])
+    out = []
+    for _, m, prices in picked[:cfg.get("max_candidates", 150)]:
+        out.append({
+            "market_id": m["id"],
+            "venue": "pmus",
+            "version": "pmus",
+            "question": m["question"],
+            "end_date": m["endDate"],
+            "event_id": None,
+            "event_slug": None,
+            "outcomes": json.loads(m["outcomes"]),
+            "outcome_prices": prices,
+            "clob_token_ids": m["clobTokenIds"],
+            "volume_24h": 0.0,
+            "liquidity": 0.0,
+            "slug": m["slug"],
+            "category": m["category"],
+            "fee_theta": m["feeSchedule"]["rate"],
+            "description": (m["description"] or "")[:500],
+            "query": "pmus",
+        })
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--hours", type=float, default=168)
@@ -219,6 +287,11 @@ def main():
                 rec["query"] = label
                 print(json.dumps(rec))
         print(f"scan: query {label!r} -> {got} candidates", file=sys.stderr)
+    pmus = pmus_candidates(min_end, horizon, banned, seen)
+    for rec in pmus:
+        kept += 1
+        print(json.dumps(rec))
+    print(f"scan: query 'pmus' -> {len(pmus)} candidates", file=sys.stderr)
     if UNSUPPORTED:
         print(f"scan: skipped {sum(UNSUPPORTED.values())} markets with no usable "
               f"token ids, by Gamma version: {dict(UNSUPPORTED)}", file=sys.stderr)

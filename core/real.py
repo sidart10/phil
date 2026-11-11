@@ -289,6 +289,12 @@ def cmd_place(args):
         fail(f"edge_class {edge_class!r} not in allowed_edge_classes "
              f"{real['allowed_edge_classes']} — this bet stays paper-only")
 
+    # Pearl Connect signs only international Polymarket orders. Paper rows on
+    # other venues (Polymarket US "pmus:" ids) can never get a real twin here.
+    if pmapi.is_pmus(twin["market_id"]):
+        fail(f"{twin['market_id']} is a Polymarket US market; real.py trades only "
+             f"international Polymarket through Pearl Connect")
+
     # The paper ledger already refuses read-only markets; this check is on the
     # market itself, so no paper row can reach an order on one. Fails closed
     # before any top-up.

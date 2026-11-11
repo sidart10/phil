@@ -384,6 +384,14 @@ def mark_to_market(open_entries):
     return rows
 
 
+def venue_of(row):
+    """Venue of a ledger row: its own field, else read from the id prefix
+    ("pmus:" = Polymarket US); unprefixed rows are international Polymarket."""
+    if row.get("venue"):
+        return row["venue"]
+    return "pmus" if str(row.get("market_id", "")).startswith("pmus:") else "polymarket"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", action="store_true")
@@ -402,15 +410,19 @@ def main():
         return
 
     report = {"overall": stats(settled), "luck_adjusted": luck_adjusted(settled),
-              "by_edge_class": {}, "by_category": {}, "by_strategy_rev": {},
+              "by_venue": {}, "by_edge_class": {}, "by_category": {}, "by_strategy_rev": {},
               "calibration": [], "forecasts": forecast_report(frows)}
+    by_venue = defaultdict(list)
     by_class = defaultdict(list)
     by_cat = defaultdict(list)
     by_rev = defaultdict(list)
     for e in settled:
+        by_venue[venue_of(e)].append(e)
         by_class[e.get("edge_class") or "unclassified"].append(e)
         by_cat[e["category"]].append(e)
         by_rev[e.get("strategy_rev") or "unknown"].append(e)
+    for ven, es in sorted(by_venue.items()):
+        report["by_venue"][ven] = stats(es)
     for cls, es in sorted(by_class.items()):
         report["by_edge_class"][cls] = stats(es)
     for cat, es in sorted(by_cat.items()):
@@ -442,6 +454,10 @@ def main():
     la = report["luck_adjusted"]
     print(f"luck-adjusted: expected wins (own ests)={la['expected_wins']} "
           f"actual={la['actual_wins']} z={la['z']:+.2f}")
+    print("\nby venue:")
+    for ven, s in report["by_venue"].items():
+        print(f"  {ven:12} n={s['n']:3} win={s['win_rate']:.2f} pnl=${s['pnl_usd']:+8.2f} "
+              f"brier_delta={s['brier_delta']:+.4f}")
     print("\nby edge class:")
     for cls, s in report["by_edge_class"].items():
         print(f"  {cls:12} n={s['n']:3} win={s['win_rate']:.2f} pnl=${s['pnl_usd']:+8.2f} "

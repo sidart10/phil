@@ -157,6 +157,7 @@ def cmd_place(args, entries):
         "id": uuid.uuid4().hex[:12],
         "ts": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "market_id": args.market_id,
+        "venue": m.get("venue") or "polymarket",
         "question": m.get("question"),
         "slug": m.get("slug"),
         "end_date": m.get("endDate"),

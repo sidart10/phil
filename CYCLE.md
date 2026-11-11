@@ -22,6 +22,27 @@ procedure exactly once, then stop. Work from this directory.
 - Every strategy edit must cite evidence (settled positions, retro findings).
   No speculative rewrites.
 
+## Venues (added 2026-11-11, operator)
+
+Paper bets can now be placed on two venues. Both are paper only.
+
+- **Polymarket (international)**: ids are plain numbers, as before.
+- **Polymarket US** (polymarket.us, a separate CFTC-regulated exchange):
+  ids are `pmus:<slug>`; scan rows carry `"venue": "pmus"`. Place, forecast,
+  settle and score them with the same commands and the full `pmus:` id, e.g.
+  `python3 core/ledger.py place --market-id pmus:aec-nfl-was-nyg-2026-11-12
+  --outcome Giants ...`. Each market has one book; the second outcome is the
+  short side, priced at 1 - the long bid. Taker fee is theta x p x (1 - p)
+  per contract (theta 0.095 here). The scan lists Polymarket US games and
+  near-term markets (mostly sports) as query `pmus`, capped by
+  `config/protected.json` `venues.pmus`.
+- `core/score.py` reports `by venue`. Keep categories venue-neutral (e.g.
+  `nfl-moneyline`), so the venue slice, not the category name, separates them.
+- A Polymarket US market and an international one on the same event are two
+  separate markets with separate prices. Treat a gap between them as
+  evidence, never as a riskless arbitrage: their rules and settlement
+  sources can differ.
+
 ## What is mine to change (added 2026-08-03)
 
 I own my **judgment** (`strategy/playbook.md`, `strategy/risk.json`), my

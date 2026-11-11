@@ -1,5 +1,5 @@
 {
-  "_comment": "PROTECTED — the trading agent may not edit this file or anything in core/. Changes here are made by the human operator only.",
+  "_comment": "PROTECTED \u2014 the trading agent may not edit this file or anything in core/. Changes here are made by the human operator only.",
   "sim_bankroll_usd": 1000.0,
   "max_stake_usd": 10.0,
   "max_open_positions": 60,
@@ -26,6 +26,16 @@
     "max_stake_usd": 1.0,
     "max_open_positions": 10,
     "daily_stake_cap_usd": 5.0,
-    "allowed_edge_classes": ["cross-market"]
+    "allowed_edge_classes": [
+      "cross-market"
+    ]
+  },
+  "venues": {
+    "_comment": "Venues beyond international Polymarket, paper only (operator, 2026-11-11). pmus = Polymarket US via its public gateway (core/venue_pmus.py). max_spread is the widest best bid/ask gap a scanned market may have; max_candidates caps how many reach the screener per scan.",
+    "pmus": {
+      "enabled": true,
+      "max_spread": 0.05,
+      "max_candidates": 150
+    }
   }
 }

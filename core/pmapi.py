@@ -43,18 +43,44 @@ def gamma_markets(**params):
     return get_json(f"{GAMMA}/markets", params)
 
 
+# Venue dispatch (operator, 2026-11-11). Ids prefixed "pmus:" belong to
+# Polymarket US (core/venue_pmus.py), which returns the same gamma/CLOB shapes,
+# so every caller below works on either venue. Unprefixed ids are the
+# international Polymarket, exactly as before.
+def _pmus():
+    import venue_pmus  # noqa: PLC0415 - lazy: venue_pmus imports this module
+    return venue_pmus
+
+
+def is_pmus(identifier):
+    return str(identifier).startswith("pmus:")
+
+
 def gamma_market(market_id):
+    if is_pmus(market_id):
+        return _pmus().market(market_id)
     return get_json(f"{GAMMA}/markets/{market_id}")
 
 
 def clob_book(token_id):
+    if is_pmus(token_id):
+        return _pmus().book(token_id)
     return get_json(f"{CLOB}/book", {"token_id": token_id})
 
 
 def clob_books(token_ids):
     """Books of up to 500 CLOB tokens in one request (docs.polymarket.com/
-    market-data/prices-order-books). A token with no book may be left out."""
-    return get_json(f"{CLOB}/books", body=[{"token_id": t} for t in token_ids])
+    market-data/prices-order-books). A token with no book may be left out.
+    Polymarket US tokens are fetched one book at a time."""
+    intl = [t for t in token_ids if not is_pmus(t)]
+    books = get_json(f"{CLOB}/books", body=[{"token_id": t} for t in intl]) if intl else []
+    for t in token_ids:
+        if is_pmus(t):
+            try:
+                books.append(clob_book(t))
+            except RuntimeError:
+                continue
+    return books
 
 
 def _float(value):
@@ -85,6 +111,8 @@ def last_trade_price(token_id):
     own last_trade_price is market-wide (both outcome books of a market
     carry the same value), so read this per-token endpoint instead; it
     answers a never-traded token with a "0.5" placeholder and an empty side."""
+    if is_pmus(token_id):
+        return _float(clob_book(token_id).get("last_trade_price"))
     r = get_json(f"{CLOB}/last-trade-price", {"token_id": token_id})
     return _float(r.get("price")) if r.get("side") else None
 
@@ -138,7 +166,7 @@ def taker_fee_per_share(market, price):
 # protocol (docs.polymarket.com/market-data/market-details). The V2 migration
 # guide says to "Reject missing or unsupported versions", so an untagged market
 # is rejected too (market_version returns None).
-SUPPORTED_VERSIONS = {"v1", "v2"}
+SUPPORTED_VERSIONS = {"v1", "v2", "pmus"}
 # docs.polymarket.com/trading/positions/how-positions-work: a V2 Position ID's
 # first byte is its module: 1 BinaryModule, 2 NegRiskModule, 3 CombinatorialModule.
 V2_BINARY_MODULE = 1
@@ -159,7 +187,7 @@ def tradable(market):
     combinatorial V2 markets settle on contracts Pearl Connect does not sign for,
     so they stay read-only, with any unsupported or untagged version."""
     version = market_version(market)
-    if version == "v1":
+    if version in ("v1", "pmus"):
         return True
     ids = token_ids(market) if version == "v2" else None
     return bool(ids) and not market.get("negRisk") \
