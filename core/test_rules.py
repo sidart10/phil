@@ -231,11 +231,14 @@ class Record(unittest.TestCase):
             self.assertIn(name, str(cm.exception.code))
 
     def test_text_report_prints_rule_line(self):
-        # score.main() prints text only with settled bets, so it reads the
-        # real journal/ledger.jsonl next to this temporary forecast file.
+        # score.main() prints text only with settled bets. The fork starts
+        # with an empty journal/ledger.jsonl, so read the archived upstream
+        # ledger (journal/upstream/ledger.jsonl), which always has settled rows.
         self.seed("half-gap", 0.7, 0.6, n=3)
         out = io.StringIO()
         with mock.patch.object(score, "FORECASTS", self.path), \
+                mock.patch.object(score, "LEDGER",
+                                  score.ROOT / "journal" / "upstream" / "ledger.jsonl"), \
                 mock.patch.object(sys, "argv", ["score.py", "--skip-mtm"]), \
                 contextlib.redirect_stdout(out):
             score.main()
