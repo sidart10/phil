@@ -31,11 +31,18 @@
     ]
   },
   "venues": {
-    "_comment": "Venues beyond international Polymarket, paper only (operator, 2026-11-11). pmus = Polymarket US via its public gateway (core/venue_pmus.py). max_spread is the widest best bid/ask gap a scanned market may have; max_candidates caps how many reach the screener per scan.",
+    "_comment": "Venues beyond international Polymarket, paper only (operator, 2026-11-11). pmus = Polymarket US via its public gateway (core/venue_pmus.py); kalshi = Kalshi via its public API (core/venue_kalshi.py). max_spread is the widest best bid/ask gap a scanned market may have; max_candidates caps how many reach the screener per scan; kalshi.min_volume_24h is in contracts.",
     "pmus": {
       "enabled": true,
       "max_spread": 0.05,
       "max_candidates": 150
+    },
+    "kalshi": {
+      "enabled": true,
+      "max_spread": 0.05,
+      "min_volume_24h": 100,
+      "max_candidates": 150,
+      "close_slack_days": 2
     }
   }
 }

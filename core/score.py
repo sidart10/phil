@@ -386,10 +386,15 @@ def mark_to_market(open_entries):
 
 def venue_of(row):
     """Venue of a ledger row: its own field, else read from the id prefix
-    ("pmus:" = Polymarket US); unprefixed rows are international Polymarket."""
+    ("pmus:" = Polymarket US, "kalshi:" = Kalshi); unprefixed rows are
+    international Polymarket."""
     if row.get("venue"):
         return row["venue"]
-    return "pmus" if str(row.get("market_id", "")).startswith("pmus:") else "polymarket"
+    mid = str(row.get("market_id", ""))
+    for prefix in ("pmus", "kalshi"):
+        if mid.startswith(prefix + ":"):
+            return prefix
+    return "polymarket"
 
 
 def main():

@@ -24,7 +24,7 @@ procedure exactly once, then stop. Work from this directory.
 
 ## Venues (added 2026-11-11, operator)
 
-Paper bets can now be placed on two venues. Both are paper only.
+Paper bets can be placed on three venues. All are paper only.
 
 - **Polymarket (international)**: ids are plain numbers, as before.
 - **Polymarket US** (polymarket.us, a separate CFTC-regulated exchange):
@@ -36,6 +36,13 @@ Paper bets can now be placed on two venues. Both are paper only.
   per contract (theta 0.095 here). The scan lists Polymarket US games and
   near-term markets (mostly sports) as query `pmus`, capped by
   `config/protected.json` `venues.pmus`.
+- **Kalshi** (kalshi.com, CFTC-regulated): ids are `kalshi:<TICKER>`; scan
+  rows carry `"venue": "kalshi"` (query `kalshi`, busiest markets first,
+  capped by `venues.kalshi`). Outcomes are always `Yes` / `No`; the question
+  says what Yes means, and the rules are in `description`. Taker fee is
+  0.07 x p x (1 - p) per contract (x the series' fee multiplier). A Kalshi
+  market settled at a fair price (e.g. a cancelled game at 0.33) pays each
+  share that price and the row ends `void`.
 - `core/score.py` reports `by venue`. Keep categories venue-neutral (e.g.
   `nfl-moneyline`), so the venue slice, not the category name, separates them.
 - A Polymarket US market and an international one on the same event are two

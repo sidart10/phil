@@ -153,6 +153,11 @@ class Settle(unittest.TestCase):
         ok, r = self.settle(self.row("Over"), {RESOLVED["slug"]: 0})
         self.assertEqual((r["status"], r["pnl_usd"]), ("lost", -5.0))
 
+    def test_split_settlement_pays_half_as_void(self):
+        ok, r = self.settle(self.row("Under"), {RESOLVED["slug"]: 0.5})
+        self.assertTrue(ok)
+        self.assertEqual((r["status"], r["pnl_usd"]), ("void", 0.0))   # 10 x 0.5 - 5
+
     def test_no_settlement_stays_open_even_long_past_end(self):
         ok, r = self.settle(self.row("Under"), {})
         self.assertFalse(ok)

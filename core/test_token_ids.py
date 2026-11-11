@@ -205,6 +205,7 @@ class ScanMain(unittest.TestCase):
                 mock.patch.object(pmapi, "gamma_markets", gamma_markets), \
                 mock.patch.object(pmapi, "clob_books", books), \
                 mock.patch.object(scan, "pmus_candidates", lambda *_a: []), \
+                mock.patch.object(scan, "kalshi_candidates", lambda *_a: []), \
                 mock.patch.object(scan.archive, "BOOKS_DIR", self.books_dir), \
                 contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             scan.main()
