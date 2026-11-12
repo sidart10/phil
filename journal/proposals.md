@@ -4878,3 +4878,8 @@ the stake. That keeps "honest CLOB-ask fills" honest on token-ask books.
     ranks 16-30 of the same collect.
   - Status: PROPOSED.
 - All other items: status unchanged from DEEP-2026-11-08.
+
+## 2026-11-12 06:4xZ (FULL, cloud): ODDS_API_KEY unset in this fork, and the pool is now sports-heavy
+
+- Evidence: `printenv ODDS_API_KEY` is empty this tick. The 06:21Z pool had 300 of 1492 rows from the new pmus/kalshi venues (mostly sports), and 6 of the top 15 screener escalations were game lines (NZ-India friendly x2, Czechia-Spain, England-Croatia, Barca-Arsenal x2). None could get a sportsbook benchmark, so they ended as benchmark-unreachable skips with no forecast. The V2 sweep rule (through 11-15) also cannot run: 2 live V2 books, 0 rows.
+- Ask (operator): set ODDS_API_KEY (the-odds-api.com free tier, 500 credits/month) in the cloud environment, or accept that sports rows on the new venues stay unforecast. Status: PROPOSED.
