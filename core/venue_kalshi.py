@@ -34,6 +34,8 @@ series is reachable; otherwise 1.
 import datetime as dt
 import functools
 import json
+import sys
+import time
 import urllib.parse
 
 import pmapi
@@ -206,21 +208,42 @@ def last_trade_price(token_id):
     return last if side == "yes" else round(1.0 - last, 6)
 
 
-def list_markets(start, end, page_size=1000, max_pages=80):
+PAGE_PAUSE_S = 0.3          # between pages: unsigned reads are rate limited
+RETRY_PAUSES_S = (5, 15, 30)  # after a failed page (2026-11-12: HTTP 429 mid-listing)
+
+
+def list_markets(start, end, page_size=1000, max_pages=80, sleep=time.sleep):
     """Open binary Kalshi markets whose close_time falls between the
     datetimes start and end, combos (multivariate) excluded. A 3-day window
     held 27,000 markets on 2026-11-11 (mostly player props), so up to
-    max_pages x page_size are read; the caller filters and caps."""
+    max_pages x page_size are read; the caller filters and caps.
+
+    Kalshi rate-limits unsigned reads. A failed page is retried after
+    RETRY_PAUSES_S; if it still fails, the pages already read are returned
+    (a partial listing beats none) and the shortfall is reported on stderr."""
     out, cursor = [], None
-    for _ in range(max_pages):
+    for page in range(max_pages):
         params = {"limit": page_size, "status": "open", "mve_filter": "exclude",
                   "min_close_ts": int(start.timestamp()), "max_close_ts": int(end.timestamp())}
         if cursor:
             params["cursor"] = cursor
-        r = pmapi.get_json(f"{API}/markets", params)
-        out.extend(m for m in (r or {}).get("markets") or []
+        r = None
+        for pause in (0,) + RETRY_PAUSES_S:
+            if pause:
+                sleep(pause)
+            try:
+                r = pmapi.get_json(f"{API}/markets", params, retries=1)
+                break
+            except RuntimeError as e:
+                err = e
+        if r is None:
+            print(f"venue_kalshi: listing stopped at page {page + 1} after retries "
+                  f"({err}); keeping {len(out)} markets already read", file=sys.stderr)
+            break
+        out.extend(m for m in r.get("markets") or []
                    if m.get("market_type", "binary") == "binary")
-        cursor = (r or {}).get("cursor")
+        cursor = r.get("cursor")
         if not cursor:
             break
+        sleep(PAGE_PAUSE_S)
     return out

@@ -110,6 +110,42 @@ class Books(unittest.TestCase):
         self.assertEqual([m["ticker"] for m in got], [TICKER])
 
 
+class Listing(unittest.TestCase):
+    def test_partial_listing_survives_a_429(self):
+        calls = []
+
+        def get_json(url, params=None, retries=3, body=None):
+            calls.append(params.get("cursor"))
+            if params.get("cursor") == "p2":
+                raise RuntimeError("HTTP Error 429: Too Many Requests")
+            return {"markets": [dict(OPEN, ticker=f"T{len(calls)}")], "cursor": "p2"}
+
+        start = dt.datetime(2026, 11, 11, tzinfo=dt.timezone.utc)
+        with mock.patch.object(pmapi, "get_json", get_json), \
+                mock.patch("sys.stderr"):
+            got = venue_kalshi.list_markets(start, start + dt.timedelta(days=3),
+                                            sleep=lambda _s: None)
+        self.assertEqual([m["ticker"] for m in got], ["T1"])
+        self.assertEqual(calls, [None, "p2", "p2", "p2", "p2"])   # 1 try + 3 retries
+
+    def test_retry_recovers(self):
+        state = {"n": 0}
+
+        def get_json(url, params=None, retries=3, body=None):
+            state["n"] += 1
+            if state["n"] == 2:
+                raise RuntimeError("HTTP Error 429")
+            if params.get("cursor"):
+                return {"markets": [dict(OPEN, ticker="B")], "cursor": ""}
+            return {"markets": [dict(OPEN, ticker="A")], "cursor": "c"}
+
+        start = dt.datetime(2026, 11, 11, tzinfo=dt.timezone.utc)
+        with mock.patch.object(pmapi, "get_json", get_json):
+            got = venue_kalshi.list_markets(start, start + dt.timedelta(days=3),
+                                            sleep=lambda _s: None)
+        self.assertEqual([m["ticker"] for m in got], ["A", "B"])
+
+
 class Settle(unittest.TestCase):
     NOW = dt.datetime(2026, 11, 12, 6, 0, tzinfo=dt.timezone.utc)
 
