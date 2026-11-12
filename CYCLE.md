@@ -16,6 +16,10 @@ procedure exactly once, then stop. Work from this directory.
   only `core/forecast.py` and `core/resolve.py` write `journal/forecasts.jsonl`;
   only `core/lease.py` writes `journal/lease.json`; only `core/archive.py`
   and `core/scan.py` write `journal/archive/`.
+- Shell commands run under a fixed allowlist (`loop.sh`). Run each command
+  on its own, from this directory: no `git -C <path>`, no `cd`, no `$VAR`
+  expansion (use `printenv NAME`), and pipe only into `head`, `tail` or
+  `wc`. A blocked command means "rewrite it simpler", not "stop the cycle".
 - Every probability estimate you record must be your honest belief — your
   calibration is measured (`core/score.py`), and gaming it destroys the
   experiment's value.

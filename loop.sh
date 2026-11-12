@@ -176,7 +176,9 @@ PY
          "Bash(git checkout -B main HEAD)"
          "Bash(git rebase --continue)" "Bash(git rebase --abort)"
          "Bash(git rebase --quit)"
-         "Bash(git pull:*)")
+         "Bash(git pull:*)"
+         "Bash(printenv:*)" "Bash(echo:*)" "Bash(head:*)" "Bash(tail:*)"
+         "Bash(wc:*)" "Bash(ls:*)" "Bash(date:*)")
   if [ "$PEARL_UP" -eq 1 ]; then
     # wallet_info is read-only; the mech_* tools buy predictions from the
     # Olas mech marketplace (~$0.01 USDC each, paid by the service safe) per
