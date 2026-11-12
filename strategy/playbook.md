@@ -5823,6 +5823,15 @@ and never qualify.
 different failure), other categories, and mechanical anchors (official
 print, transcript count, cross-market arithmetic).
 
+**Scope note (RETRO-20261112-1825).** A corporate board or similar body
+acting on its own officer (removal, resignation, CEO change) is an
+"institution" for condition 1. The bar applies to such a question whether
+the row is filed `news` or `corporate-exit`. Evidence: Huang exit
+`9ee151188914` was filed `corporate-exit`, own .07 vs mid .40, with the
+board probe documented as active. It resolved Yes within 2 days. The six
+later rows in the chain (all `news`, at or below the mid) also resolved
+Yes. No bet was placed (fact-finality gate, news skip).
+
 **Settled tally (RETRO-20261001-0625).** 3 bar-blocked rows settled, CF
 2W/1L, -$1.24 (`core/counterfactual.py ledger --skip-reason
 process-shape-bar`): US-Iran meeting `e36a44d978b6` +$2.35 and Saudi
