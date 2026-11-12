@@ -91,6 +91,18 @@ def settle_against_market(e, m, now):
             e["pnl_usd"] = round(e["shares"] - e["stake_usd"], 4) if won else -e["stake_usd"]
         e["outcome_won"] = max(zip(prices, outcomes))[1]
         return True
+    # Kalshi and Polymarket US settle a cancelled or ambiguous event at a fair
+    # price between 0 and 1 (2026-11-11: Kalshi e-soccer games settled
+    # "scalar" at 0.33 per side). Their adapters only mark a market closed once
+    # that settlement value exists, so pay each share its settled price, at
+    # once, as a void row (void rows are left out of scoring).
+    if m.get("venue") in ("kalshi", "pmus") and len(prices) == len(outcomes) and prices:
+        e["status"] = "void"
+        e["settled_ts"] = settlement_ts(m, now)
+        if "shares" in e:
+            price = dict(zip(outcomes, prices)).get(e["outcome"], 0.0)
+            e["pnl_usd"] = round(e["shares"] * price - e["stake_usd"], 4)
+        return True
     # "Market resolves 50/50 - each token redeems for $0.50". Pay that only
     # when the settled prices say so; with no prices at all, return the stake.
     split = bool(prices) and all(p == VOID_PAYOUT_PER_SHARE for p in prices)

@@ -16,11 +16,43 @@ procedure exactly once, then stop. Work from this directory.
   only `core/forecast.py` and `core/resolve.py` write `journal/forecasts.jsonl`;
   only `core/lease.py` writes `journal/lease.json`; only `core/archive.py`
   and `core/scan.py` write `journal/archive/`.
+- Shell commands run under a fixed allowlist (`loop.sh`). Run each command
+  on its own, from this directory: no `git -C <path>`, no `cd`, no `$VAR`
+  expansion (use `printenv NAME`), and pipe only into `head`, `tail` or
+  `wc`. A blocked command means "rewrite it simpler", not "stop the cycle".
 - Every probability estimate you record must be your honest belief — your
   calibration is measured (`core/score.py`), and gaming it destroys the
   experiment's value.
 - Every strategy edit must cite evidence (settled positions, retro findings).
   No speculative rewrites.
+
+## Venues (added 2026-11-11, operator)
+
+Paper bets can be placed on three venues. All are paper only.
+
+- **Polymarket (international)**: ids are plain numbers, as before.
+- **Polymarket US** (polymarket.us, a separate CFTC-regulated exchange):
+  ids are `pmus:<slug>`; scan rows carry `"venue": "pmus"`. Place, forecast,
+  settle and score them with the same commands and the full `pmus:` id, e.g.
+  `python3 core/ledger.py place --market-id pmus:aec-nfl-was-nyg-2026-11-12
+  --outcome Giants ...`. Each market has one book; the second outcome is the
+  short side, priced at 1 - the long bid. Taker fee is theta x p x (1 - p)
+  per contract (theta 0.095 here). The scan lists Polymarket US games and
+  near-term markets (mostly sports) as query `pmus`, capped by
+  `config/protected.json` `venues.pmus`.
+- **Kalshi** (kalshi.com, CFTC-regulated): ids are `kalshi:<TICKER>`; scan
+  rows carry `"venue": "kalshi"` (query `kalshi`, busiest markets first,
+  capped by `venues.kalshi`). Outcomes are always `Yes` / `No`; the question
+  says what Yes means, and the rules are in `description`. Taker fee is
+  0.07 x p x (1 - p) per contract (x the series' fee multiplier). A Kalshi
+  market settled at a fair price (e.g. a cancelled game at 0.33) pays each
+  share that price and the row ends `void`.
+- `core/score.py` reports `by venue`. Keep categories venue-neutral (e.g.
+  `nfl-moneyline`), so the venue slice, not the category name, separates them.
+- A Polymarket US market and an international one on the same event are two
+  separate markets with separate prices. Treat a gap between them as
+  evidence, never as a riskless arbitrage: their rules and settlement
+  sources can differ.
 
 ## What is mine to change (added 2026-08-03)
 

@@ -34,6 +34,8 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import archive  # noqa: E402
 import pmapi  # noqa: E402
+import venue_kalshi  # noqa: E402
+import venue_pmus  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PROTECTED = json.loads((ROOT / "config" / "protected.json").read_text())
@@ -176,6 +178,139 @@ def keep(m, seen, banned, args):
     }
 
 
+PMUS_GAME_PRIORITY = {"moneyline": 0, "drawable_outcome": 0, "spreads": 1, "spread": 1, "totals": 1, "total": 1}
+
+
+def pmus_candidates(min_end, horizon, banned, seen):
+    """Polymarket US markets admissible under the same protected rules as
+    keep(): not banned, resolving between min_end and horizon, every side's
+    price inside the entry bounds. The gateway has no volume figures, so a
+    market also needs a two-sided quote no wider than max_spread. At most
+    max_candidates are kept: game winners first, then lines, then the rest,
+    tightest spread first within each group."""
+    cfg = (PROTECTED.get("venues") or {}).get("pmus") or {}
+    if not cfg.get("enabled"):
+        return []
+    try:
+        # A game listed up to GAME_HOURS before min_end can still be running.
+        raw = venue_pmus.list_markets(
+            min_end - dt.timedelta(hours=venue_pmus.GAME_HOURS), horizon)
+    except RuntimeError as e:
+        print(f"scan: Polymarket US listing failed: {e}", file=sys.stderr)
+        return []
+    LISTED["pmus"] += len(raw)
+    picked = []
+    for rec in raw:
+        m = venue_pmus.normalize(rec)
+        if m is None or m["id"] in seen:
+            continue
+        q = m["question"]
+        if any(p.search(q) for p in banned):
+            continue
+        end = venue_pmus._parse_ts(m["endDate"])
+        if end is None or not min_end <= end <= horizon:
+            continue
+        prices = json.loads(m["outcomePrices"] or "[]")
+        if len(prices) != 2 or max(prices) > PROTECTED["max_entry_price"] \
+                or min(prices) < PROTECTED["min_entry_price"]:
+            continue
+        bid, ask = m["bestBid"], m["bestAsk"]
+        if bid is None or ask is None or ask - bid > cfg.get("max_spread", 0.05) + 1e-9:
+            continue
+        seen.add(m["id"])
+        rank = (PMUS_GAME_PRIORITY.get((m["marketType"] or "").lower(), 2), ask - bid)
+        picked.append((rank, m, prices))
+    picked.sort(key=lambda t: t[0])
+    out = []
+    for _, m, prices in picked[:cfg.get("max_candidates", 150)]:
+        out.append({
+            "market_id": m["id"],
+            "venue": "pmus",
+            "version": "pmus",
+            "question": m["question"],
+            "end_date": m["endDate"],
+            "event_id": None,
+            "event_slug": None,
+            "outcomes": json.loads(m["outcomes"]),
+            "outcome_prices": prices,
+            "clob_token_ids": m["clobTokenIds"],
+            "volume_24h": 0.0,
+            "liquidity": 0.0,
+            "slug": m["slug"],
+            "category": m["category"],
+            "fee_theta": m["feeSchedule"]["rate"],
+            "description": (m["description"] or "")[:500],
+            "query": "pmus",
+        })
+    return out
+
+
+def kalshi_candidates(min_end, horizon, banned, seen):
+    """Kalshi markets admissible under the same protected rules: not banned,
+    result expected between min_end and horizon, both sides' prices inside the
+    entry bounds, a two-sided quote no wider than max_spread and at least
+    min_volume_24h contracts traded in 24h. At most max_candidates are kept,
+    busiest first. Kalshi's close_time can be after the event, so the listing
+    reaches close_slack_days past the horizon and filters on the expected
+    result time."""
+    cfg = (PROTECTED.get("venues") or {}).get("kalshi") or {}
+    if not cfg.get("enabled"):
+        return []
+    try:
+        raw = venue_kalshi.list_markets(
+            min_end, horizon + dt.timedelta(days=cfg.get("close_slack_days", 2)))
+    except RuntimeError as e:
+        print(f"scan: Kalshi listing failed: {e}", file=sys.stderr)
+        return []
+    LISTED["kalshi"] += len(raw)
+    picked = []
+    for rec in raw:
+        if float(rec.get("volume_24h_fp") or 0) < cfg.get("min_volume_24h", 100):
+            continue
+        # fee_mult=1 here: the series lookup happens only for markets kept.
+        m = venue_kalshi.normalize(rec, fee_mult=1.0)
+        if m is None or m["id"] in seen:
+            continue
+        q = m["question"]
+        if any(p.search(q) for p in banned):
+            continue
+        end = venue_kalshi._parse_ts(m["endDate"])
+        if end is None or not min_end <= end <= horizon:
+            continue
+        prices = json.loads(m["outcomePrices"] or "[]")
+        if len(prices) != 2 or max(prices) > PROTECTED["max_entry_price"] \
+                or min(prices) < PROTECTED["min_entry_price"]:
+            continue
+        bid, ask = m["bestBid"], m["bestAsk"]
+        if bid is None or ask is None or ask - bid > cfg.get("max_spread", 0.05) + 1e-9:
+            continue
+        seen.add(m["id"])
+        picked.append((-m["volume24hr"], m, prices))
+    picked.sort(key=lambda t: t[0])
+    out = []
+    for _, m, prices in picked[:cfg.get("max_candidates", 150)]:
+        out.append({
+            "market_id": m["id"],
+            "venue": "kalshi",
+            "version": "kalshi",
+            "question": m["question"],
+            "end_date": m["endDate"],
+            "event_id": m["event_ticker"],
+            "event_slug": m["event_ticker"],
+            "outcomes": json.loads(m["outcomes"]),
+            "outcome_prices": prices,
+            "clob_token_ids": m["clobTokenIds"],
+            "volume_24h": m["volume24hr"],
+            "liquidity": m["liquidityNum"],
+            "slug": m["slug"],
+            "fee_theta": venue_kalshi.TAKER_THETA
+                         * venue_kalshi.fee_multiplier(venue_kalshi.series_of(m["slug"])),
+            "description": (m["description"] or "")[:500],
+            "query": "kalshi",
+        })
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--hours", type=float, default=168)
@@ -219,6 +354,16 @@ def main():
                 rec["query"] = label
                 print(json.dumps(rec))
         print(f"scan: query {label!r} -> {got} candidates", file=sys.stderr)
+    pmus = pmus_candidates(min_end, horizon, banned, seen)
+    for rec in pmus:
+        kept += 1
+        print(json.dumps(rec))
+    print(f"scan: query 'pmus' -> {len(pmus)} candidates", file=sys.stderr)
+    kalshi = kalshi_candidates(min_end, horizon, banned, seen)
+    for rec in kalshi:
+        kept += 1
+        print(json.dumps(rec))
+    print(f"scan: query 'kalshi' -> {len(kalshi)} candidates", file=sys.stderr)
     if UNSUPPORTED:
         print(f"scan: skipped {sum(UNSUPPORTED.values())} markets with no usable "
               f"token ids, by Gamma version: {dict(UNSUPPORTED)}", file=sys.stderr)

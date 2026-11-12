@@ -3,6 +3,19 @@
 Observations from the human operator's side that the cycle agents cannot
 reconstruct after the fact. Treat as evidence in retros.
 
+## 2026-11-11 23:15Z — fork reset: fresh $1,000 paper bankroll
+
+This repository is now a fork run by a new operator. Paper only:
+`real_trading_enabled` is false and there is no Pearl Connect signer, so
+REAL.md and step 5a (mech) never apply. The upstream ledger and real ledger
+were moved to `journal/upstream/` and `journal/ledger.jsonl` restarts empty
+at the $1,000 sim bankroll. Upstream open positions are NOT ours: do not
+settle, score or reference them as live. The playbook, tools, retros and
+forecasts history are kept as learned evidence. Settled upstream results
+(83 bets, -$58.79, brier_delta +0.056) remain valid evidence about which
+categories lose. Cycles run with every exchange key stripped from the
+environment; market data is public and needs none.
+
 ## 2026-07-31 18:35Z — ai-leaderboard pair: resolution contradicted the source
 
 Positions `7e753de88823` (Moonshot Yes @ 0.065) and `0bf9fe3785c6`

@@ -7,6 +7,18 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# Fork safety (operator, 2026-11-11): cycles browse the web and run
+# python3 core/*, so a hostile page could try to read and leak secrets. Paper
+# trading needs no keys, so drop every exchange or wallet credential from this
+# process before anything else runs. Matches KALSHI_*, POLYGON_*,
+# POLYMARKET_* (incl. POLYMARKET_US_*), and any *PRIVATE_KEY* / *SECRET*.
+for _v in $(compgen -e); do
+  case "$_v" in
+    KALSHI_*|POLYGON_*|POLYMARKET_*|*PRIVATE_KEY*|*SECRET*|*MNEMONIC*) unset "$_v" ;;
+  esac
+done
+unset _v
+
 # One loop per checkout. Two loop.sh processes in the same working tree
 # commit over each other and collide with the cloud routine (2026-09-15 to
 # 2026-09-21: a second loop started without PEARL_CONNECT_STORE ran next to
@@ -164,7 +176,9 @@ PY
          "Bash(git checkout -B main HEAD)"
          "Bash(git rebase --continue)" "Bash(git rebase --abort)"
          "Bash(git rebase --quit)"
-         "Bash(git pull:*)")
+         "Bash(git pull:*)"
+         "Bash(printenv:*)" "Bash(echo:*)" "Bash(head:*)" "Bash(tail:*)"
+         "Bash(wc:*)" "Bash(ls:*)" "Bash(date:*)")
   if [ "$PEARL_UP" -eq 1 ]; then
     # wallet_info is read-only; the mech_* tools buy predictions from the
     # Olas mech marketplace (~$0.01 USDC each, paid by the service safe) per

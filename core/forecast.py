@@ -215,6 +215,7 @@ def cmd_record(args, rows):
         "outcome": args.outcome,
         "token_id": tokens[args.outcome],
         "version": pmapi.market_version(m),
+        "venue": m.get("venue") or "polymarket",
         "est_prob": est,
         **rule_fields,
         "best_bid_at_record": bid,
