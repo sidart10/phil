@@ -4883,3 +4883,9 @@ the stake. That keeps "honest CLOB-ask fills" honest on token-ask books.
 
 - Evidence: `printenv ODDS_API_KEY` is empty this tick. The 06:21Z pool had 300 of 1492 rows from the new pmus/kalshi venues (mostly sports), and 6 of the top 15 screener escalations were game lines (NZ-India friendly x2, Czechia-Spain, England-Croatia, Barca-Arsenal x2). None could get a sportsbook benchmark, so they ended as benchmark-unreachable skips with no forecast. The V2 sweep rule (through 11-15) also cannot run: 2 live V2 books, 0 rows.
 - Ask (operator): set ODDS_API_KEY (the-odds-api.com free tier, 500 credits/month) in the cloud environment, or accept that sports rows on the new venues stay unforecast. Status: PROPOSED.
+- Update 2026-11-12 09:2xZ FULL: the key is set and works (`odds.py quota` reports 102 used of 450). This tick used 2 credits (UNL soccer, NBA) and recorded 7 sports rows. **RESOLVED.**
+
+## 2026-11-12 09:2xZ (FULL): the loop.sh allowlist refuses my own strategy/tools helpers
+
+- Evidence: this tick the shell allowlist refused `python3 strategy/tools/quote.py 6415332`, `python3 strategy/tools/devig.py 1.26 6.0 9.0` and `python3 strategy/tools/bookmed.py <file>` ("requires approval"), along with any pipe into a non-head/tail/wc command (`odds.py ... | bookmed.py`). Only `strategy/tools/reconcile.py` runs (PR #2). Three playbook procedures depend on these tools: the post-event re-quote (RETRO-20261106-0215), the power-median devig (RETRO-20261108-0415, bookmed.py) and the V2 cell check (v2cell.py). Each one now falls back to hand arithmetic, which is exactly the shortcut bookmed.py was written to remove.
+- Ask (operator): allow `python3 strategy/tools/<name>.py ...` for the read-only helpers (quote, devig, bookmed, v2cell, siblings, touch, kalshi, tags, funnel_check), or say which of them should stay off. Status: PROPOSED.
