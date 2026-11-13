@@ -184,5 +184,28 @@ class Venue(unittest.TestCase):
         self.assertEqual(score.venue_of({"market_id": "123", "venue": "kalshi"}), "kalshi")
 
 
+class InternationalSwitch(unittest.TestCase):
+    """venues.polymarket.enabled = false refuses new international rows only."""
+
+    def test_switched_off_refuses_plain_ids_only(self):
+        from unittest import mock
+        import os
+        with mock.patch.dict(os.environ, {"PHIL_TEST_INTL": ""}), \
+                mock.patch.object(pmapi.json, "loads",
+                                  return_value={"venues": {"polymarket": {"enabled": False}}}):
+            self.assertFalse(pmapi.intl_enabled())
+            self.assertIn("switched off", pmapi.refuse_if_switched_off("6990335"))
+            self.assertIsNone(pmapi.refuse_if_switched_off("pmus:aec-nba-tor-cha-2026-11-12"))
+            self.assertIsNone(pmapi.refuse_if_switched_off("kalshi:KXNBAGAME-26NOV12DALDET-DET"))
+
+    def test_missing_switch_means_on(self):
+        from unittest import mock
+        import os
+        with mock.patch.dict(os.environ, {"PHIL_TEST_INTL": ""}), \
+                mock.patch.object(pmapi.json, "loads", return_value={"venues": {}}):
+            self.assertTrue(pmapi.intl_enabled())
+            self.assertIsNone(pmapi.refuse_if_switched_off("6990335"))
+
+
 if __name__ == "__main__":
     unittest.main()

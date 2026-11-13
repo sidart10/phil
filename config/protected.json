@@ -31,18 +31,23 @@
     ]
   },
   "venues": {
-    "_comment": "Venues beyond international Polymarket, paper only (operator, 2026-11-11). pmus = Polymarket US via its public gateway (core/venue_pmus.py); kalshi = Kalshi via its public API (core/venue_kalshi.py). max_spread is the widest best bid/ask gap a scanned market may have; max_candidates caps how many reach the screener per scan; kalshi.min_volume_24h is in contracts.",
+    "_comment": "Venues beyond international Polymarket, paper only (operator, 2026-11-11). pmus = Polymarket US via its public gateway (core/venue_pmus.py); kalshi = Kalshi via its public API (core/venue_kalshi.py). max_spread is the widest best bid/ask gap a scanned market may have; max_candidates caps how many reach the screener per scan; kalshi.min_volume_24h is in contracts. polymarket.enabled=false (operator, 2026-11-13) switches international Polymarket off for new scans, forecasts, bets and watch triggers; rows already recorded there still settle and score. Kalshi and Polymarket US candidate caps raised 150 -> 250 so the screen pool stays full. non_sports_share reserves that fraction of each venue's candidates for non-sports markets when they exist (operator, 2026-11-13: research beats a consensus sports line rarely).",
+    "polymarket": {
+      "enabled": false
+    },
     "pmus": {
       "enabled": true,
       "max_spread": 0.05,
-      "max_candidates": 150
+      "max_candidates": 250,
+      "non_sports_share": 0.5
     },
     "kalshi": {
       "enabled": true,
       "max_spread": 0.05,
       "min_volume_24h": 100,
-      "max_candidates": 150,
-      "close_slack_days": 2
+      "max_candidates": 250,
+      "close_slack_days": 2,
+      "non_sports_share": 0.5
     }
   }
 }

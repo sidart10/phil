@@ -190,5 +190,25 @@ class Venue(unittest.TestCase):
         self.assertFalse(pmapi.is_other_venue("12345"))
 
 
+class ReserveNonSports(unittest.TestCase):
+    def setUp(self):
+        import scan
+        self.reserve = scan.reserve_non_sports
+        self.picked = [(i, {"c": c}, None) for i, c in enumerate("SSSSSOOSSO")]
+        self.sport = lambda m: m["c"] == "S"
+
+    def kinds(self, cap, share):
+        return "".join(t[1]["c"] for t in self.reserve(self.picked, cap, self.sport, share))
+
+    def test_half_the_slots_go_to_non_sports_in_rank_order(self):
+        self.assertEqual(self.kinds(4, 0.5), "SSOO")
+
+    def test_unused_non_sports_slots_fall_back_to_sports(self):
+        self.assertEqual(self.kinds(8, 0.5), "SSSSSOOO")
+
+    def test_share_zero_is_the_old_top_n(self):
+        self.assertEqual(self.kinds(4, 0.0), "SSSS")
+
+
 if __name__ == "__main__":
     unittest.main()

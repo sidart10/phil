@@ -101,6 +101,18 @@ def fee_multiplier(series_ticker):
     return m if m is not None and m > 0 else 1.0
 
 
+@functools.lru_cache(maxsize=1)
+def series_categories():
+    """Series ticker -> Kalshi category ("Sports", "Economics", ...), from one
+    GET /series call (about 16,000 series, 2026-11-13). {} if it fails, so a
+    caller treats every market as uncategorised rather than stopping."""
+    try:
+        rows = pmapi.get_json(f"{API}/series", {}, retries=2).get("series") or []
+    except RuntimeError:
+        return {}
+    return {r.get("ticker"): r.get("category") for r in rows if r.get("ticker")}
+
+
 def effective_end(rec):
     return _parse_ts(rec.get("expected_expiration_time")) or _parse_ts(rec.get("close_time"))
 

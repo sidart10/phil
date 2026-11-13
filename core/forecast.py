@@ -177,6 +177,9 @@ def cmd_record(args, rows):
                      f"(old {old['est_prob']}, new {est}) or a changed "
                      f"skip-reason (old {old.get('skip_reason')!r})")
 
+    off = pmapi.refuse_if_switched_off(args.market_id)
+    if off:
+        sys.exit(off)
     m = pmapi.gamma_market(args.market_id)
     if m.get("closed"):
         sys.exit("REJECTED: market is closed")
