@@ -6242,6 +6242,18 @@ zero rate (1 in about 80 days, mean 3.8, variance 4.3) times the days
 left, gave 0.10, and beat the book. For daily-count min-touch rows, start
 from the empirical per-day zero rate of the current regime, not from a
 dispersion read. n=1 settlement: forecast-only, no bet on this method.
+**Kalshi weekly-sum ladders (KXPANAMAWEEKLY / KXSUEZWEEKLY): resolution
+match done (2026-11-13 06:3xZ FULL).** These resolve on the SUM of PortWatch
+daily `n_total` over Mon-Sun, not the MA. The same ArcGIS layer reproduced
+every settled `expiration_value` checked: Panama Nov 2-8 191, Oct 26-Nov 1
+191; Suez Nov 2-8 311. Readable through WebFetch (curl is not
+allowlisted). The ~3-4 day publication lag means none of the target week is
+public until Thursday or Friday, while the books sit above every recent
+weekly sum (Suez T320 0.60 vs a 6-week max of 311; Panama T190 0.84 vs
+sums of 191/191). That looks like in-week AIS information. First rows
+00fe2ca4fc4e, 01d4eceea66c, e2d6d20b8fdd, c629d6293a4f, 358a4eb6a25b
+are forecast-only. Grade at settlement (Nov 17) whether the book's
+in-week tilt or the series model was right before betting this family.
 
 ## Forecast hygiene: supersede the stale sibling in the same cycle (2026-09-30 18:15Z, LIGHT retro)
 
