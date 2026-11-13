@@ -189,6 +189,10 @@ def price_move_entries(wl, now, out_expired):
         if expired(raw, now):
             out_expired.append(f"pricemove:{market_id}")
             continue
+        if pmapi.refuse_if_switched_off(market_id):
+            warn(f"watchlist price_moves entry {label!r} is on international "
+                 "Polymarket, which is switched off; skipped")
+            continue
         try:
             threshold = float(raw.get("move_threshold", MIN_MOVE_THRESHOLD))
         except (TypeError, ValueError):
@@ -316,6 +320,10 @@ def banned_patterns():
 def check_new_markets(cfg, now, notes):
     """Fire on freshly created markets clearing the liquidity/keyword floor."""
     if not isinstance(cfg, dict) or not cfg.get("enabled", False):
+        return []
+    if not pmapi.intl_enabled():
+        # This lane lists international Polymarket only (gamma), which the
+        # operator switched off on 2026-11-13.
         return []
     try:
         min_liquidity = float(cfg.get("min_liquidity", 5000))

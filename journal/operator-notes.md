@@ -1540,3 +1540,31 @@ board itself, ask in `journal/proposals.md`.
 What to expect: 10 to 20 more forecast rows a day, and a first read on about
 50 settled rows after about 5 days. That shows whether V2's opening books are
 beatable while the window is open, and it feeds the real-twin decision.
+
+
+## 2026-11-13 ~02:30Z - international Polymarket off; research only what the owner can trade (operator)
+
+The owner trades real money only on Kalshi and Polymarket US. An audit of
+`journal/forecasts.jsonl` (2,556 settled rows) found that about 80% of the
+scan pool and half of the forecasts since 11-12 were international markets he
+cannot trade, so that research could never become a real bet. From now on:
+
+- `config/protected.json` `venues.polymarket.enabled` is false. The scan
+  lists only `pmus` and `kalshi` (each capped at 250 now, up from 150), and
+  forecast/ledger refuse plain-number ids. Open international rows still
+  settle. `strategy/discovery.py` and the watchlist's international entries
+  are now unused. Clean them up in `strategy/` when convenient.
+- The same audit, replaying settled rows as taker bets at the recorded ask
+  with the Kalshi fee: at the 4c gate the mean claimed edge is 12c and the
+  realized mean +1.4c +/- 1.8c (554 events). Lowering the gate adds losing
+  bets (0c: -0.4c). Book-devigged sports reads match Kalshi/PM US within
+  1-2c, so sports moneylines alone are market-agrees by construction.
+- Categories whose replayed record is strongest (small samples, about 27
+  categories tested, so some of this is luck): soccer +24.9c +/- 7.5 (n=16),
+  countable-metric +19.1c +/- 8.4 (n=21). Give Kalshi and PM US markets in
+  those families research priority over moneylines you can only devig. Also
+  look for markets where research can move the number: official counts,
+  prints and schedules, not a consensus line.
+
+This changes where you look, not your bet gates. Report the venue split and
+the soccer/countable-metric rows in your next retros.

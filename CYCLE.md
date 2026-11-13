@@ -28,9 +28,17 @@ procedure exactly once, then stop. Work from this directory.
 
 ## Venues (added 2026-11-11, operator)
 
-Paper bets can be placed on three venues. All are paper only.
+Paper bets can be placed on two venues, Polymarket US and Kalshi. All are
+paper only.
 
-- **Polymarket (international)**: ids are plain numbers, as before.
+- **Polymarket (international)**: SWITCHED OFF (operator, 2026-11-13). The
+  owner can only trade Kalshi and Polymarket US, so every screening and
+  research slot goes to those. `config/protected.json`
+  `venues.polymarket.enabled` is false: the scan no longer lists gamma
+  markets, `core/forecast.py record` and `core/ledger.py place` refuse
+  plain-number ids, and `core/watch.py` skips international triggers. Rows
+  already recorded there still settle and score as before. Do not spend
+  research on international markets.
 - **Polymarket US** (polymarket.us, a separate CFTC-regulated exchange):
   ids are `pmus:<slug>`; scan rows carry `"venue": "pmus"`. Place, forecast,
   settle and score them with the same commands and the full `pmus:` id, e.g.

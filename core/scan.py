@@ -181,6 +181,21 @@ def keep(m, seen, banned, args):
 PMUS_GAME_PRIORITY = {"moneyline": 0, "drawable_outcome": 0, "spreads": 1, "spread": 1, "totals": 1, "total": 1}
 
 
+def reserve_non_sports(picked, cap, is_sports, share):
+    """The first `cap` of `picked` (already in rank order), keeping at least
+    share x cap slots for non-sports markets when that many exist; whatever
+    one group leaves unused goes to the other. Busy sports books otherwise
+    fill the whole quota (2026-11-13: 500 of 500 candidates were sports), and
+    a sports line already matches the bookmaker consensus, which research
+    rarely beats. Order within each group is unchanged."""
+    other = [t for t in picked if not is_sports(t[1])]
+    sport = [t for t in picked if is_sports(t[1])]
+    n_other = min(len(other), max(int(round(cap * share)), cap - len(sport)))
+    chosen = other[:n_other] + sport[:cap - n_other]
+    order = {id(t): i for i, t in enumerate(picked)}
+    return sorted(chosen, key=lambda t: order[id(t)])
+
+
 def pmus_candidates(min_end, horizon, banned, seen):
     """Polymarket US markets admissible under the same protected rules as
     keep(): not banned, resolving between min_end and horizon, every side's
@@ -222,7 +237,10 @@ def pmus_candidates(min_end, horizon, banned, seen):
         picked.append((rank, m, prices))
     picked.sort(key=lambda t: t[0])
     out = []
-    for _, m, prices in picked[:cfg.get("max_candidates", 150)]:
+    picked = reserve_non_sports(picked, cfg.get("max_candidates", 150),
+                                lambda m: (m.get("category") or "").lower() == "sports",
+                                cfg.get("non_sports_share", 0.0))
+    for _, m, prices in picked:
         out.append({
             "market_id": m["id"],
             "venue": "pmus",
@@ -287,8 +305,14 @@ def kalshi_candidates(min_end, horizon, banned, seen):
         seen.add(m["id"])
         picked.append((-m["volume24hr"], m, prices))
     picked.sort(key=lambda t: t[0])
+    cats = venue_kalshi.series_categories()
+    for _, m, _p in picked:
+        m["category"] = cats.get(venue_kalshi.series_of(m["event_ticker"] or m["slug"]))
+    picked = reserve_non_sports(picked, cfg.get("max_candidates", 150),
+                                lambda m: m.get("category") == "Sports",
+                                cfg.get("non_sports_share", 0.0))
     out = []
-    for _, m, prices in picked[:cfg.get("max_candidates", 150)]:
+    for _, m, prices in picked:
         out.append({
             "market_id": m["id"],
             "venue": "kalshi",
@@ -297,6 +321,7 @@ def kalshi_candidates(min_end, horizon, banned, seen):
             "end_date": m["endDate"],
             "event_id": m["event_ticker"],
             "event_slug": m["event_ticker"],
+            "category": m.get("category"),
             "outcomes": json.loads(m["outcomes"]),
             "outcome_prices": prices,
             "clob_token_ids": m["clobTokenIds"],
@@ -332,7 +357,18 @@ def main():
     min_end = now + dt.timedelta(minutes=PROTECTED["min_minutes_to_resolution"])
 
     seen, kept = set(), 0
-    for base in discovery_queries(args, min_end, horizon) + [v2_sweep(args, min_end, horizon)]:
+    # International Polymarket (gamma queries and the V2 sweep) runs only while
+    # venues.polymarket.enabled is true. The operator switched it off on
+    # 2026-11-13: the owner trades only Kalshi and Polymarket US, so every
+    # screening and research slot goes to markets he can actually trade.
+    intl = pmapi.intl_enabled()
+    if not intl:
+        print("scan: international Polymarket switched off "
+              "(venues.polymarket.enabled = false); scanning pmus + kalshi only",
+              file=sys.stderr)
+    gamma_queries = (discovery_queries(args, min_end, horizon)
+                     + [v2_sweep(args, min_end, horizon)]) if intl else []
+    for base in gamma_queries:
         label = base.pop("_label", "unlabeled")
         got = 0
         offset = 0

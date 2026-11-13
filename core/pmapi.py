@@ -72,6 +72,35 @@ def is_other_venue(identifier):
     return str(identifier).startswith(VENUE_PREFIXES)
 
 
+def intl_enabled():
+    """False when the operator has switched international Polymarket off
+    (config/protected.json venues.polymarket.enabled). Default on, so an
+    older config keeps working. Settling and scoring rows already recorded
+    there never depends on this."""
+    import os
+    import pathlib
+    # Offline tests of the international engine set this; it is not a switch
+    # for cycles (CI's boundary guard keeps the protected config the source).
+    if os.environ.get("PHIL_TEST_INTL") == "1":
+        return True
+    try:
+        cfg = json.loads((pathlib.Path(__file__).resolve().parent.parent
+                          / "config" / "protected.json").read_text())
+    except (OSError, ValueError):
+        return True
+    return bool(((cfg.get("venues") or {}).get("polymarket") or {}).get("enabled", True))
+
+
+def refuse_if_switched_off(market_id):
+    """Reason string when market_id is on a venue the operator switched off, else None."""
+    if not is_other_venue(market_id) and not intl_enabled():
+        return ("REJECTED: international Polymarket is switched off "
+                "(config/protected.json venues.polymarket.enabled = false; operator "
+                "2026-11-13). Research and bet only Kalshi (kalshi:<TICKER>) and "
+                "Polymarket US (pmus:<slug>) markets.")
+    return None
+
+
 def gamma_market(market_id):
     venue = venue_module(market_id)
     if venue:

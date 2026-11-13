@@ -117,6 +117,9 @@ def cmd_place(args, entries):
            for e in open_pos):
         sys.exit("REJECTED: already have an open position on this market+outcome")
 
+    off = pmapi.refuse_if_switched_off(args.market_id)
+    if off:
+        sys.exit(off)
     m = pmapi.gamma_market(args.market_id)
     if m.get("closed"):
         sys.exit("REJECTED: market is closed")

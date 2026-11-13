@@ -12,6 +12,8 @@ recorded, so nothing touches the network. CI runs it on every push.
 
 Usage: python3 core/test_token_ids.py
 """
+import os
+os.environ["PHIL_TEST_INTL"] = "1"  # these tests exercise the international engine
 import argparse
 import contextlib
 import io

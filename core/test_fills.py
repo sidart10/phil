@@ -11,6 +11,8 @@ every push.
 
 Usage: python3 core/test_fills.py
 """
+import os
+os.environ["PHIL_TEST_INTL"] = "1"  # these tests exercise the international engine
 import contextlib
 import datetime as dt
 import io
