@@ -162,8 +162,10 @@ PY
 
   # strategy/tools/reconcile.py (operator, 2026-11-12, approved by Sid):
   # the playbook runs this read-only funnel/forecast coverage check every
-  # cycle. Only this one agent-written helper is allowed, and only after the
-  # key strip at the top of this file.
+  # cycle. 2026-11-13 Sid also approved the nine helpers named below (the
+  # journal/proposals.md 2026-11-12 09:2xZ ask). Each is named explicitly; any
+  # other strategy/tools script stays blocked. They are agent-written, so they
+  # rely on the key strip at the top of this file.
   # No "Bash(git push:*)": on this machine loop.sh owns the push (see the
   # push block below). The ref plumbing is allowlisted because CYCLE.md
   # step 9 and its rebase path mandate exactly these commands, and a
@@ -173,6 +175,15 @@ PY
        --allowedTools "Read" "Glob" "Grep" "WebSearch" "WebFetch"
          "Edit" "Write" "Task"
          "Bash(python3 core/*)" "Bash(python3 strategy/tools/reconcile.py:*)"
+         "Bash(python3 strategy/tools/quote.py:*)"
+         "Bash(python3 strategy/tools/devig.py:*)"
+         "Bash(python3 strategy/tools/bookmed.py:*)"
+         "Bash(python3 strategy/tools/v2cell.py:*)"
+         "Bash(python3 strategy/tools/siblings.py:*)"
+         "Bash(python3 strategy/tools/touch.py:*)"
+         "Bash(python3 strategy/tools/kalshi.py:*)"
+         "Bash(python3 strategy/tools/tags.py:*)"
+         "Bash(python3 strategy/tools/funnel_check.py:*)"
          "Bash(git add:*)" "Bash(git commit:*)"
          "Bash(git rev-parse:*)" "Bash(git log:*)" "Bash(git diff:*)"
          "Bash(git status:*)" "Bash(git symbolic-ref:*)"
