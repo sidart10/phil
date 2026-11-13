@@ -17,12 +17,16 @@ Usage:
 Key: env ODDS_API_KEY, else ~/.config/phil/odds-api-key. NEVER store the key
 in the repo — journal and strategy are public.
 
-Quota: free tier is 500 credits/month. This tool hard-refuses once
-LOCAL_BUDGET credits are recorded for the current month (buffer for header
-lag and out-of-band use), tracked in journal/odds-quota.json — committed, so
-spend is public and survives runner churn. The API's own
-x-requests-used/remaining headers are authoritative and overwrite the local
-estimate whenever present. Identical requests within CACHE_TTL_S are served
+Quota: the operator's key is on the paid 20K-credits/month plan (2026-11-13)
+and is SHARED with the operator's sports pipeline. Phil's own share is
+LOCAL_BUDGET credits per calendar month (env ODDS_PHIL_BUDGET, default 3000,
+about 100/day). This tool hard-refuses once Phil has spent that much this
+month, or when the account has fewer than ACCOUNT_RESERVE credits left.
+Spend is tracked in journal/odds-quota.json — committed, so it is public and
+survives runner churn. Phil's spend is counted from the API's
+x-requests-last header (the true cost of each call); the account-wide
+x-requests-used counter is NOT Phil's spend because other tools share the key,
+so only x-requests-remaining is recorded (as remaining_reported). Identical requests within CACHE_TTL_S are served
 from cache and spend nothing, so re-running a command mid-cycle is free.
 
 Costs (per the-odds-api docs): /sports is free; /odds costs regions x
@@ -51,7 +55,8 @@ QUOTA_FILE = REPO_ROOT / "journal" / "odds-quota.json"
 KEY_FILE = pathlib.Path.home() / ".config" / "phil" / "odds-api-key"
 CACHE_DIR = pathlib.Path.home() / ".cache" / "phil-odds"
 CACHE_TTL_S = 600
-LOCAL_BUDGET = 450  # hard local stop under the 500/month free tier
+LOCAL_BUDGET = int(os.environ.get("ODDS_PHIL_BUDGET", "3000"))  # Phil's monthly share of the shared paid key
+ACCOUNT_RESERVE = 60  # never drain the shared account below this
 
 # Same TLS-fingerprint story as strategy/tools/quote.py: urllib first, curl
 # fallback on any failure — datacenter blocks are the whole reason this tool
@@ -127,21 +132,20 @@ def spend_guarded(path, params, cost):
     if cp.is_file() and time.time() - cp.stat().st_mtime < CACHE_TTL_S:
         return json.loads(cp.read_text())
 
-    if cost > 0 and q["used_credits"] + cost > LOCAL_BUDGET:
+    low = q.get("remaining_reported") is not None and q["remaining_reported"] - cost < ACCOUNT_RESERVE
+    if cost > 0 and (q["used_credits"] + cost > LOCAL_BUDGET or low):
         sys.exit(f"ERROR: monthly odds-API budget exhausted "
                  f"({q['used_credits']}/{LOCAL_BUDGET} local cap, month {q['month']}). "
                  "Log 'odds budget exhausted' and skip — do not work around.")
 
     body, headers = fetch(url)
     headers = {k.lower(): v for k, v in headers.items()}
-    q["used_credits"] += cost
-    used = headers.get("x-requests-used")
+    last = headers.get("x-requests-last")
+    try:
+        q["used_credits"] += int(float(last)) if last is not None else cost
+    except ValueError:
+        q["used_credits"] += cost
     remaining = headers.get("x-requests-remaining")
-    if used is not None:
-        try:
-            q["used_credits"] = int(float(used))
-        except ValueError:
-            pass
     if remaining is not None:
         try:
             q["remaining_reported"] = int(float(remaining))

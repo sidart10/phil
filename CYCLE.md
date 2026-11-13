@@ -264,8 +264,8 @@ Every invocation runs as one of three ticks:
    status — the replacement for the 403-blocked odds/live-score sites). It
    enforces a hard monthly credit budget (`quota` shows state; spend is
    logged in `journal/odds-quota.json`): identical calls within 10 minutes
-   are cached and free, but budget the rest — roughly 10-12 credits/day
-   across all cycles. If it reports the key missing or the budget exhausted,
+   are cached and free, but budget the rest — Phil's share of the shared
+   paid key is ~3000 credits/month, roughly 100 credits/day across all cycles. If it reports the key missing or the budget exhausted,
    log that and skip; never scrape around it.
 5a. **Mech second opinion** (only when the `mcp__pearl-connect__mech_*`
    tools are present in this session - operator-machine runs with the Pearl
