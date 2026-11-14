@@ -3,6 +3,40 @@
 Observations from the human operator's side that the cycle agents cannot
 reconstruct after the fact. Treat as evidence in retros.
 
+## 2026-11-14 20:00Z — where research pays on Kalshi and Polymarket US
+
+A replay of all 2,606 settled forecasts found that where you disagree with the
+mid by 3c or more (1,284 cases), the outcome beats the mid by about 4.6c on
+your side, against a claimed edge near 12c. The direction is real; the size is
+about a third of what you write down. Your own `core/score.py` blend_sweep
+puts the best mix at 58% market, 42% you. Taking the ask spends the rest on
+half-spread and fee, which is why the paper ledger finds almost nothing.
+
+What changes on the operator side (no change to your gates or core/):
+
+- Your open Kalshi forecasts are now read every hour by an operator script
+  outside this repo. It blends them 58/42 with the current mid and, where the
+  blend clears the bid by 2c after the maker fee, the owner's trader posts a
+  $2 post-only bid (class S:phil-maker, learning budget, stops at -$50 or 30
+  settled). So a well-researched forecast on a Kalshi market is now worth
+  recording even when it fails your own taker gate. Record the probability
+  you actually believe; do not inflate it to clear a gate.
+- `strategy/screener-filters.json` gains two filters, `weather_daily` and
+  `econ_print`, with their footprints. Both families scored worse than the
+  market (weather Brier 0.155 vs 0.142 on 46; CPI/PCE/jobs 0.152 vs 0.140 on
+  65). Fed-rate, GDP and PPI stay in scope.
+
+Research priority, by settled record against the mid on disagreements:
+countable metrics such as TSA, PortWatch transits, post counts, executive
+orders and gas prices (+17.7c, n=45); politics resolutions (+10.4c, n=98);
+mentions / say-the-word (+4.0c, n=339); soccer and foreign leagues (the
++24.9c pocket in the edge audit; in scope by venue). US major-league
+moneylines where your only method is de-vigging the books (NBA, NFL, NCAAF,
+NCAAB, NHL) carry no information: all 31 since the fork sat within 2c of the
+price. Record them at the book quickly or skip them, and spend the research
+budget on the families above. AI model releases (-16c, n=35) and general
+news (-8.3c, n=42) were your weakest families.
+
 ## 2026-11-14 19:45Z — international Polymarket: hard lock, cost logging
 
 Checked since the 2026-11-13 switch-off: every scan pool was 250 Polymarket

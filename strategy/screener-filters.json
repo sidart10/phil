@@ -56,6 +56,16 @@
       "name": "weather_temperature",
       "pattern": "\\b(highest|lowest)\\s+temperature\\s+in\\b",
       "note": "Added 2026-09-07 07:5xZ (FULL cycle, operator machine). Daily-temperature bracket markets are a standing no-bet category (playbook: weather self-model; settled weather forecasts n=27 brier_delta +0.0477, market better) and the Haiku tier cannot judge them without a forecast feed it is forbidden to fetch. Footprint measured on journal/screener.jsonl over 98 collect runs: weather is 11.6% of screened rows (3401/29400) but 18.0% of top-15 escalations (264/1470), and on 2026-09-07 07:48Z it was 11 of 15 escalations, 8 of them 0.5/0.5 'no weather forecast data available' placeholders. Graded against journal/screener-outcomes.jsonl: ESCALATED weather rows score Haiku brier 0.3547 vs mid 0.3034 (delta +0.0514, n=140) -- the escalations are noise that crowds out rows the researcher can act on; all weather rows delta +0.0043 (n=1817). The exploration finding that weather benchmarks (open-meteo/METAR) ARE reachable is unaffected: weather stays researchable on demand via discovery/watch items, it just no longer claims screener escalation slots."
+    },
+    {
+      "name": "weather_daily",
+      "pattern": "^(?!.*\\b(say|said|mention)).*(\\bwill it (rain|snow)\\b|\\b(rain|snow)fall\\b|\\bprecipitation\\b|\\brain in\\b)",
+      "note": "Added 2026-11-14 by the operator (plan 'Phil on US markets and next strategies', Sid approved). Daily rain/snow (temperature already has weather_temperature) markets on Kalshi are priced by forecast-model bots. Footprint in journal/forecasts.jsonl: the weather category has 52 forecasts, of which this pattern matches the 19 rain/snow ones (temperature rows are left to weather_temperature); 46 settled score Brier 0.155 vs market 0.142 (worse), and 1 of 5 US-era disagreements went Phil's way. Blind resting bids in weather are also negative in the maker backtest. Remove this filter only with new evidence that research beats these books. Mention markets ('say rain') are excluded from the match."
+    },
+    {
+      "name": "econ_print",
+      "pattern": "^(?!.*\\b(say|said|mention)).*\\b(cpi|inflation rate|nonfarm|non-farm|payrolls?|jobs report|unemployment rate|core pce|pce (price|inflation))\\b",
+      "note": "Added 2026-11-14 by the operator (same plan). Scheduled CPI/PCE/jobs prints are priced off public nowcasts. Footprint: 70 forecasts (econ-cpi 26, econ-pce 25, econ-jobs 11, econ 8); 65 settled score Brier 0.152 vs market 0.140 (worse). Fed-rate, GDP and PPI markets are not matched and stay in scope. Mention markets ('say CPI') are excluded from the match."
     }
   ],
   "exclude_mids_exactly_half": true,
