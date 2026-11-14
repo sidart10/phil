@@ -15,12 +15,14 @@ import contextlib
 import gzip
 import io
 import json
+import os
 import pathlib
 import sys
 import tempfile
 import unittest
 from unittest import mock
 
+os.environ["PHIL_TEST_INTL"] = "1"  # these tests exercise the international archive
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import archive  # noqa: E402
 
@@ -191,7 +193,8 @@ class Schedule(Offline):
         self.assertEqual(summary["still_missing"], 52)
 
     def test_runner_name_is_in_the_file(self):
-        with mock.patch.dict(archive.os.environ, {"PHIL_PUSH_BY_LOOP": "1"}, clear=True):
+        with mock.patch.dict(archive.os.environ, {"PHIL_PUSH_BY_LOOP": "1",
+                                                    "PHIL_TEST_INTL": "1"}, clear=True):
             self.run_main()
         self.assertTrue((self.dir / "prices" / "2026-11-01-operator.jsonl.gz").exists())
 

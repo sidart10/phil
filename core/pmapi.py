@@ -17,6 +17,9 @@ def get_json(url, params=None, retries=3, body=None):
     params repeats the parameter."""
     if params:
         url = url + "?" + urllib.parse.urlencode(params, doseq=True)
+    refusal = intl_request_refusal(url, body)
+    if refusal:
+        raise RuntimeError(refusal)
     data = None if body is None else json.dumps(body).encode()
     headers = UA if body is None else {**UA, "Content-Type": "application/json"}
     last_err = None
@@ -89,6 +92,84 @@ def intl_enabled():
     except (OSError, ValueError):
         return True
     return bool(((cfg.get("venues") or {}).get("polymarket") or {}).get("enabled", True))
+
+
+INTL_HOSTS = ("gamma-api.polymarket.com", "clob.polymarket.com",
+              "data-api.polymarket.com")
+
+
+# The fork's own history starts here (journal/operator-notes.md, 2026-11-11
+# 23:15Z). Older open rows are the upstream operator's: they stay frozen as
+# open while international Polymarket is off rather than cost ~100 gamma
+# requests a cycle until 2027.
+FORK_RESET_TS = "2026-11-11T23:15:00Z"
+
+
+def recorded_open_intl_ids():
+    """Market ids and token ids of international rows this fork recorded that
+    are still open in the paper ledger or the forecast ledger. Settling those
+    is the one international read allowed while the venue is switched off; the
+    set empties as they settle (the last ends 2026-11-25), and the lock is then
+    total."""
+    import pathlib
+    ids = set()
+    journal = pathlib.Path(__file__).resolve().parent.parent / "journal"
+    for name in ("ledger.jsonl", "forecasts.jsonl"):
+        try:
+            lines = (journal / name).read_text().splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(row, dict) or row.get("status") != "open":
+                continue
+            if str(row.get("ts") or "") < FORK_RESET_TS:
+                continue
+            for key in ("market_id", "token_id"):
+                value = row.get(key)
+                if value and not is_other_venue(value):
+                    ids.add(str(value))
+    return ids
+
+
+def intl_request_refusal(url, body=None):
+    """Reason string when url is an international Polymarket request (gamma,
+    CLOB, data API) made while venues.polymarket.enabled is false, else None.
+
+    Operator, 2026-11-14: the owner can bet only on Kalshi and Polymarket US,
+    so no cycle may spend a request on the international exchange. This is a
+    venue lock, not a topic filter: soccer, foreign leagues and foreign events
+    listed on Kalshi or Polymarket US are untouched. One exception: a single
+    market or token read for a row already recorded and still open, so it can
+    settle and score (core/resolve.py). PHIL_ALLOW_INTL_READS=1 lets an
+    operator run an offline-history tool (touch/screen replay) by hand; loop.sh
+    never sets it."""
+    import os
+    parsed = urllib.parse.urlparse(url)
+    if parsed.hostname not in INTL_HOSTS:
+        return None
+    if intl_enabled() or os.environ.get("PHIL_ALLOW_INTL_READS") == "1":
+        return None
+    allowed = recorded_open_intl_ids()
+    wanted = []
+    parts = [p for p in parsed.path.split("/") if p]
+    query = urllib.parse.parse_qs(parsed.query)
+    if parsed.hostname == "gamma-api.polymarket.com" and len(parts) == 2 \
+            and parts[0] == "markets" and not query:
+        wanted = [parts[1]]
+    elif parsed.hostname == "clob.polymarket.com" and body is None \
+            and parts and parts[0] in ("book", "price", "midpoint",
+                                       "last-trade-price", "prices-history"):
+        wanted = query.get("token_id") or query.get("market") or []
+    if wanted and all(w in allowed for w in wanted):
+        return None
+    return ("REFUSED: international Polymarket request blocked "
+            f"({parsed.hostname}{parsed.path}); config/protected.json "
+            "venues.polymarket.enabled = false (operator 2026-11-13/14). Only "
+            "Kalshi and Polymarket US are scanned and researched.")
 
 
 def refuse_if_switched_off(market_id):

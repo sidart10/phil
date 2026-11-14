@@ -3,6 +3,23 @@
 Observations from the human operator's side that the cycle agents cannot
 reconstruct after the fact. Treat as evidence in retros.
 
+## 2026-11-14 19:45Z — international Polymarket: hard lock, cost logging
+
+Checked since the 2026-11-13 switch-off: every scan pool was 250 Polymarket
+US + 250 Kalshi, and no international market was screened or forecast. This
+closes what was left. `core/pmapi.py` and `core/watch.py` now refuse gamma,
+CLOB and data-API requests while `venues.polymarket.enabled` is false (only
+the six international forecasts this fork recorded on 2026-11-12 that are
+still open can be read, to settle them; the last ends 2026-11-25). The ~100
+pre-fork upstream forecasts still open (ending as late as 2027-01) are no
+longer fetched each cycle: they stay open and out of scoring. WebFetch is blocked on those hosts,
+`core/archive.py` skips, and `quote.py`, `siblings.py`, `tags.py` left the
+loop.sh allowlist. The lock is by venue only: soccer, foreign leagues and
+foreign events listed on Kalshi or Polymarket US are in scope, and so are
+the playbook lessons about them. loop.sh now logs each cycle's tokens and
+list-price dollars to `journal/cycle-costs.jsonl` (append-only, committed as
+`cost:`), the baseline for a playbook size review that follows.
+
 ## 2026-11-11 23:15Z — fork reset: fresh $1,000 paper bankroll
 
 This repository is now a fork run by a new operator. Paper only:
