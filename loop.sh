@@ -175,14 +175,11 @@ PY
        --allowedTools "Read" "Glob" "Grep" "WebSearch" "WebFetch"
          "Edit" "Write" "Task"
          "Bash(python3 core/*)" "Bash(python3 strategy/tools/reconcile.py:*)"
-         "Bash(python3 strategy/tools/quote.py:*)"
          "Bash(python3 strategy/tools/devig.py:*)"
          "Bash(python3 strategy/tools/bookmed.py:*)"
          "Bash(python3 strategy/tools/v2cell.py:*)"
-         "Bash(python3 strategy/tools/siblings.py:*)"
          "Bash(python3 strategy/tools/touch.py:*)"
          "Bash(python3 strategy/tools/kalshi.py:*)"
-         "Bash(python3 strategy/tools/tags.py:*)"
          "Bash(python3 strategy/tools/funnel_check.py:*)"
          "Bash(git add:*)" "Bash(git commit:*)"
          "Bash(git rev-parse:*)" "Bash(git log:*)" "Bash(git diff:*)"
@@ -195,6 +192,7 @@ PY
          "Bash(git pull:*)"
          "Bash(printenv:*)" "Bash(echo:*)" "Bash(head:*)" "Bash(tail:*)"
          "Bash(wc:*)" "Bash(ls:*)" "Bash(date:*)")
+  DISALLOWED=()
   if [ "$PEARL_UP" -eq 1 ]; then
     # wallet_info is read-only; the mech_* tools buy predictions from the
     # Olas mech marketplace (~$0.01 USDC each, paid by the service safe) per
@@ -203,19 +201,35 @@ PY
           "mcp__pearl-connect__mech_tools"
           "mcp__pearl-connect__mech_request"
           "mcp__pearl-connect__mech_result"
-          --mcp-config "$STORE/.mcp.json"
-          --disallowedTools "Read($STORE/.mcp.json)")
+          --mcp-config "$STORE/.mcp.json")
+    DISALLOWED+=("Read($STORE/.mcp.json)")
   fi
-  CMD+=(--permission-mode acceptEdits)
+  # International Polymarket is switched off (config/protected.json
+  # venues.polymarket.enabled = false, operator 2026-11-13/14): the owner can
+  # bet only on Kalshi and Polymarket US. core/pmapi.py refuses gamma/CLOB
+  # requests; this keeps WebFetch off the same hosts. quote.py, siblings.py and
+  # tags.py (international-only helpers) left the allowlist above for the same
+  # reason. Soccer, foreign leagues and foreign events listed on Kalshi or
+  # Polymarket US are unaffected.
+  DISALLOWED+=("WebFetch(domain:gamma-api.polymarket.com)"
+               "WebFetch(domain:clob.polymarket.com)"
+               "WebFetch(domain:data-api.polymarket.com)")
+  CMD+=(--disallowedTools "${DISALLOWED[@]}")
+  # The JSON result carries tokens and dollars per model; core/costlog.py
+  # appends them to journal/cycle-costs.jsonl and prints the final text.
+  CMD+=(--permission-mode acceptEdits --output-format json)
 
   # PHIL_PUSH_BY_LOOP tells CYCLE.md step 9 to commit but not push — the push
   # happens below, in this shell. GIT_TERMINAL_PROMPT/GIT_ASKPASS make any
   # stray credential lookup fail fast instead of hanging on a keyring prompt
   # no headless session can answer; GIT_EDITOR stops `git rebase --continue`
   # from opening an editor and blocking forever.
+  RESULT_JSON="$(mktemp)"
   PHIL_PUSH_BY_LOOP=1 PHIL_LEASE=acquired \
   GIT_TERMINAL_PROMPT=0 GIT_ASKPASS=/usr/bin/true GIT_EDITOR=true \
-    "${CMD[@]}" || echo "cycle $i failed; continuing"
+    "${CMD[@]}" > "$RESULT_JSON" || echo "cycle $i failed; continuing"
+  python3 core/costlog.py --result "$RESULT_JSON" --model "$MODEL" --why "$MODEL_WHY" || true
+  rm -f "$RESULT_JSON"
 
   # Enforce the protected boundary: revert any agent edits to core/config.
   PROTECTED_PATHS=(core/ config/ .github/ .claude/ CYCLE.md REAL.md loop.sh CLAUDE.md LICENSE README.md .gitignore)
@@ -235,6 +249,14 @@ PY
   # (2026-08-28: three hangs, commits stranded on a detached HEAD). This shell
   # is the interactive one the operator started, where the keychain is already
   # unlocked. CI remains the guard on protected-path commits.
+  # The cost row is written after the session's own commit, so commit it here
+  # (journal/ is not operator-owned; the boundary guard allows it).
+  if ! git diff --quiet -- journal/cycle-costs.jsonl 2>/dev/null \
+     || [ -n "$(git ls-files --others --exclude-standard journal/cycle-costs.jsonl)" ]; then
+    git add journal/cycle-costs.jsonl \
+      && git commit -q -m "cost: cycle $(date -u +%Y%m%d-%H%M) $(tail -1 journal/cycle-costs.jsonl | python3 -c 'import json,sys; r=json.loads(sys.stdin.read()); print("$%s %s tokens" % (r.get("cost_usd","?"), r.get("total_tokens","?")))' 2>/dev/null)" \
+      || echo "WARNING: could not commit the cycle cost row" >&2
+  fi
   if git remote get-url origin >/dev/null 2>&1; then
     if ! git symbolic-ref -q HEAD >/dev/null; then
       echo "WARNING: HEAD detached after cycle — reattaching main to HEAD" >&2

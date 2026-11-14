@@ -38,7 +38,17 @@ paper only.
   markets, `core/forecast.py record` and `core/ledger.py place` refuse
   plain-number ids, and `core/watch.py` skips international triggers. Rows
   already recorded there still settle and score as before. Do not spend
-  research on international markets.
+  research on international markets. Since 2026-11-14 this is a hard lock:
+  `core/pmapi.py` and `core/watch.py` refuse every gamma, CLOB and data-API
+  request (the one exception is a single market/token read for a row this
+  fork recorded that is still open, so it can settle; pre-fork upstream rows
+  stay open, unfetched), WebFetch is blocked on those
+  hosts, `core/archive.py` skips, and the international-only helpers
+  `strategy/tools/quote.py`, `siblings.py` and `tags.py` are off the
+  allowlist. A `REFUSED: international Polymarket` error is this lock: do
+  not work around it. The lock is by venue, not topic: soccer, foreign
+  leagues and foreign events listed on Kalshi or Polymarket US are fully in
+  scope, as are the playbook lessons learned on them.
 - **Polymarket US** (polymarket.us, a separate CFTC-regulated exchange):
   ids are `pmus:<slug>`; scan rows carry `"venue": "pmus"`. Place, forecast,
   settle and score them with the same commands and the full `pmus:` id, e.g.
@@ -87,8 +97,8 @@ Every invocation runs as one of three ticks:
   LIGHT tick that changed nothing logs and commits nothing (step 7).
 - **TRIGGERED**: invoked by the watch routine when `core/watch.py check`
   reported `trigger: true` this session. Skip step 0b's pacing and step 4's
-  broad scan: the candidate set is the verdict's `context` array (plus at most
-  one narrow gamma fetch when the trigger is a new market). Every other step
+  broad scan: the candidate set is the verdict's `context` array (the
+  new-market lane is international-only and off while that venue is). Every other step
   runs normally, scoped to those candidates. Before placing any bet, check the
   ledger for an existing open position on the same market - a duplicate inside
   the hour means the watcher double-fired: log it, do not re-bet. Triggered
@@ -109,7 +119,8 @@ Every invocation runs as one of three ticks:
    diverged, never reset over local commits: the runner lease below refuses
    a diverged `main` and ends the invocation. Then the **collision guard**:
    if the newest commit on `origin/main` that is not a `lease:` commit (the
-   runner lease's own, below) is a `cycle:` or `cycle(triggered):` commit
+   runner lease's own, below) or a `cost:` commit (loop.sh's per-cycle
+   token and dollar row, `journal/cycle-costs.jsonl`) is a `cycle:` or `cycle(triggered):` commit
    committed less than 20 minutes ago, another runner just cycled - run this
    invocation as a LIGHT tick (step 1 and the open-position monitor only),
    regardless of pacing state. A TRIGGERED invocation is exempt and proceeds
@@ -207,7 +218,10 @@ Every invocation runs as one of three ticks:
      before you commit it with a 10-minute timeout, prints
      `touch-replay PASS` (or `NO CHANGE` for a refactor) against the
      committed version, and paste that line in the retro; otherwise revert
-     the edit. Every run is logged in `journal/replay/runs.jsonl`.
+     the edit. Every run is logged in `journal/replay/runs.jsonl`. The
+     replay reads international Polymarket price history, which the venue
+     lock refuses, so it cannot PASS while that venue is off: touch-family
+     edits are frozen until the operator gives it a US-venue source.
    - Commit: `git add -A && git commit -m "retro: <one-line lesson>"`.
 4. **Scan & screen**: `python3 core/scan.py --hours 336 --limit 800 |
    python3 core/screen.py prepare` — queries come from `strategy/discovery.py`,
@@ -458,8 +472,9 @@ Every invocation runs as one of three ticks:
    `core/ledger.py` refuses the bet and logs it to
    `journal/v2-bet-skips.jsonl` (`v2_bets_skipped` in `ledger.py status`).
 6b. **Archive** (FULL cycles only, not TRIGGERED; operator, 2026-11-03):
-   `python3 core/archive.py` with a 10-minute timeout. It saves 5-minute price
-   series before they expire, about once a day and a few minutes at most. It
+   `python3 core/archive.py` with a 10-minute timeout. While international
+   Polymarket is switched off it prints `{"skipped": ...}` and does nothing.
+   Otherwise it saves 5-minute price series before they expire, about once a day and a few minutes at most. It
    exits 0 even on failure, and a later run retries. Whatever it prints,
    including a failure or a timeout, go on to step 7; never retry it, debug it,
    or work around it this cycle. Step 8's `git add -A` commits its files.

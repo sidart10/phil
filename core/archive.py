@@ -214,6 +214,13 @@ def main(argv=None):
     ap.add_argument("--budget-s", type=float, default=180.0,
                     help="start no new date after this many seconds; a date takes about 60")
     args = ap.parse_args(argv)
+    if not pmapi.intl_enabled():
+        # Everything archived here is international Polymarket history, which
+        # the operator switched off (2026-11-13): no cycle spends requests on
+        # it. Existing files stay for offline replays.
+        print(json.dumps({"skipped": "international Polymarket switched off "
+                          "(venues.polymarket.enabled = false)"}))
+        return 0
     try:
         summary = run(args.budget_s, int(time.time()), pathlib.Path(PRICES_DIR))
     except Exception as e:  # noqa: BLE001 - the archive must not stop a cycle

@@ -120,6 +120,9 @@ def fetch_json(url, params=None):
     global _calls
     if params:
         url = url + "?" + urllib.parse.urlencode(params)
+    refusal = pmapi.intl_request_refusal(url)
+    if refusal:
+        raise RuntimeError(refusal)
     if _calls >= MAX_CALLS:
         raise RuntimeError(f"request cap reached ({MAX_CALLS}) before GET {url}")
     if _calls:

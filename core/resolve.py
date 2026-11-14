@@ -129,8 +129,16 @@ def main():
     now = dt.datetime.now(dt.timezone.utc)
 
     market_cache = {}
+    frozen = set()
+    settle_ok = None if pmapi.intl_enabled() else pmapi.recorded_open_intl_ids()
 
     def get_market(market_id):
+        if settle_ok is not None and not pmapi.is_other_venue(market_id) \
+                and str(market_id) not in settle_ok:
+            # International Polymarket is off and this row predates the fork:
+            # it stays open, unfetched (core/pmapi.py intl_request_refusal).
+            frozen.add(market_id)
+            return None
         if market_id not in market_cache:
             try:
                 market_cache[market_id] = pmapi.gamma_market(market_id)
@@ -153,6 +161,9 @@ def main():
         if m is not None and settle_against_market(r, m, now):
             fsettled.append(r)
 
+    if frozen:
+        print(f"resolve: {len(frozen)} pre-fork international markets left "
+              "open, not fetched (venues.polymarket.enabled = false)", file=sys.stderr)
     dump_jsonl(LEDGER, entries)
     if forecasts:
         dump_jsonl(FORECASTS, forecasts)
