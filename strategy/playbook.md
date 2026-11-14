@@ -4449,6 +4449,18 @@ NOT qualify. Without the quoted base rate the row stays forecast-only,
 skip_reason `unvalidated-method`. No-side utterance bets and all
 forecasts are unaffected; standard floors unchanged.
 
+**Excerpt-absence is not evidence (RETRO-20261114-0020).** A word missing
+from partial prepared-text excerpts or a preview article is weak evidence
+against it: the excerpt is a small sample of a 30+ minute text. Without a
+full prepared text or a transcript, record an on-topic word at or near the
+book; only direct text evidence (the word is in the full text, or the
+transcript lacks it) justifies a lean. Evidence: Rubio Fed Soc lecture
+2026-11-13. "Sanction" was recorded at .72 vs book .875 and "Venezuela" at
+.20, both from absence in ~25 excerpted lines, and both were said. This
+matches the AMAT/Cisco prior-only leans (RETRO-20261113-0325, 7 of 7 lost
+on the Yes lean). This is guidance on evidence, not an estimation rule. It
+moves no recorded probability mechanically and takes no rule slot.
+
 Evidence basis (settled rows): the category's only two real-money bets
 both lost on exactly this failure — `e77eef5d06ad` (RNC "Afford",
 −$5.00, thematic-guess rationale) and `2659709d25f9` (Ternus keynote
