@@ -8704,6 +8704,19 @@ are separate markets with slugs `polyv2-<sport>-...` (the only 4 v2 rows in the 
   that lack the word, and the listeners' last trade, as evidence pointing down. n=1 event:
   no shading rule (the 6-rule budget is full).
 
+## 2026-11-14 15:20Z: Kalshi rain markets (RETRO-20261114-1520)
+
+- **Daily rain probability is a union over the climate day, not the peak hourly PoP (research
+  checklist, not an estimation rule).** Evidence: 4 KXRAIN Nov 13 rows built from NWS hourly PoPs
+  (LEX 6d2874c69158 .76/.825, ABQ 9919f94459c9 .38/.485 and f9e7b00f32b6 .45/.66, CMH
+  089205c016a1 .52/.665). All sat under the mid and all resolved Yes. Their notes read the peak hourly PoP
+  ("28-35%", "peaks 50%") as the daily probability. The observation-based row (IND b593fa83334d,
+  .14 vs .555, trace-only METARs by 12Z) was right. Process: for KXRAIN / city-rain markets, take
+  the NWS 12h-period PoPs that cover the local climate day and combine them as 1-(1-p1)(1-p2).
+  Haircut the result toward the larger PoP for correlated systems, and write that arithmetic in
+  the note. From midday local onward, lead with the station's METAR precip groups (a trace counts
+  as 0). weather stays category-bar (score.py n=41, +0.029).
+
 ## DEEP-2026-11-11 rulings
 
 - **Escalation backfill (sensing, procedure only).** 35 of the last 150 escalated slots (10 FULLs,
