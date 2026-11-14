@@ -232,12 +232,12 @@ PY
   rm -f "$RESULT_JSON"
 
   # Enforce the protected boundary: revert any agent edits to core/config.
-  PROTECTED_PATHS=(core/ config/ .github/ .claude/ CYCLE.md REAL.md loop.sh CLAUDE.md LICENSE README.md .gitignore)
+  PROTECTED_PATHS=(core/ config/ .github/ .claude/ CYCLE.md REAL.md loop.sh CLAUDE.md LICENSE NOTICE README.md .gitignore)
   if ! git diff --quiet HEAD -- "${PROTECTED_PATHS[@]}"; then
     echo "WARNING: agent touched protected files — reverting" >&2
     git checkout -- "${PROTECTED_PATHS[@]}"
   fi
-  PROTECTED_IN_LAST_COMMITS=$(git log --oneline -5 --name-only | grep -cE '^(core/|config/|\.github/|\.claude/|CYCLE\.md|REAL\.md|loop\.sh|CLAUDE\.md|LICENSE|README\.md|\.gitignore)' || true)
+  PROTECTED_IN_LAST_COMMITS=$(git log --oneline -5 --name-only | grep -cE '^(core/|config/|\.github/|\.claude/|CYCLE\.md|REAL\.md|loop\.sh|CLAUDE\.md|LICENSE|NOTICE|README\.md|\.gitignore)' || true)
   if [ "$PROTECTED_IN_LAST_COMMITS" -gt 0 ]; then
     echo "WARNING: protected files appear in recent commits — review manually" >&2
   fi

@@ -10,7 +10,7 @@ set -euo pipefail
 BEFORE="${1:?usage: boundary.sh <before-sha> <after-sha>}"
 AFTER="${2:?usage: boundary.sh <before-sha> <after-sha>}"
 
-PROTECTED='^(core/|config/|\.github/|\.claude/|CYCLE\.md|REAL\.md|loop\.sh|CLAUDE\.md|LICENSE|README\.md|\.gitignore)'
+PROTECTED='^(core/|config/|\.github/|\.claude/|CYCLE\.md|REAL\.md|loop\.sh|CLAUDE\.md|LICENSE|NOTICE|README\.md|\.gitignore)'
 # Written by core/touch_replay.py, core/scan.py and core/costlog.py (via
 # loop.sh); an agent commit may only
 # append to them.
