@@ -3,7 +3,7 @@
 ## Reporting
 
 Please use GitHub's private vulnerability reporting (Security tab, "Report a
-vulnerability", or <https://github.com/bennyjo/phil/security/advisories/new>
+vulnerability", or <https://github.com/sidart10/phil/security/advisories/new>
 for this repository) rather than a public issue for anything exploitable.
 Reports are read by the human operator, not by the agent.
 

@@ -1,0 +1,25 @@
+Phil, the self-improving trader
+Original work by bennyjo (https://github.com/bennyjo/phil)
+
+This repository is a fork of bennyjo/phil, licensed under the Apache
+License, Version 2.0 (see LICENSE). The original design, engine (core/),
+cycle procedure (CYCLE.md, REAL.md, loop.sh), CI and the agent's strategy
+and journal up to the fork point are the work of the original author.
+
+Modifications by sidart10 (https://github.com/sidart10/phil), from
+2026-11-11 onward, include:
+
+- Kalshi and Polymarket US venues for paper trading (core/venue_kalshi.py,
+  core/venue_pmus.py) and their tests.
+- International Polymarket switched off and hard-locked
+  (config/protected.json, core/test_intl_lock.py).
+- real_trading_enabled set to false; Phil runs paper only. Real-money
+  trading happens in separate, private tooling that reads Phil's forecasts.
+- Paper fills charge each venue's fees and respect order minimums.
+- Per-cycle cost logging (core/costlog.py, journal/cycle-costs.jsonl).
+- Screener filters and operator research priorities for US markets.
+- Repository documentation rewritten (README.md) and maintainer contacts
+  changed to sidart10.
+
+The full list of changes is the git history after the fork point:
+every operator change is a commit prefixed "operator:".
