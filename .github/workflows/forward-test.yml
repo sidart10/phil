@@ -1,8 +1,9 @@
 name: Forward test
 
 # Daily check: once enough forecasts have settled after the gnhf run 1
-# cutoff, score strategy/policy.py on them and open one issue with the
-# verdict. See .github/scripts/forward_test.py for the cutoff and criteria.
+# cutoff, score strategy/policy.py on them and post the verdict on the run
+# summary (plus one issue if the repo has Issues enabled). See
+# .github/scripts/forward_test.py for the cutoff and criteria.
 
 on:
   schedule:
@@ -33,6 +34,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          # Always publish the verdict on the run's summary page.
+          cat "$RUNNER_TEMP/forward-test.md" >> "$GITHUB_STEP_SUMMARY"
+          # Issues are disabled on this fork; the summary is then the record.
+          if [ "$(gh api "repos/$GH_REPO" --jq .has_issues)" != "true" ]; then
+            echo "issues are disabled on $GH_REPO; verdict is on the run summary page"
+            exit 0
+          fi
           if [ -n "$(gh issue list --label forward-test --state all --limit 1 --json number --jq '.[].number')" ]; then
             echo "forward-test issue already exists; not opening another"
             exit 0
