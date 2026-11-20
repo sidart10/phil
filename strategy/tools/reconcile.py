@@ -204,6 +204,13 @@ def main():
     # an id documented there still counts as documented.
     for path in sorted((ROOT / "strategy" / "archive").glob("*.md")):
         playbook += path.read_text()
+    # 2026-11-20: the 2026-11-14 playbook trim moved settled-row logs to
+    # strategy/playbook-archive.md (e.g. e88c4535a758, 475313a77007); an id
+    # documented there still counts as documented.
+    try:
+        playbook += (ROOT / "strategy" / "playbook-archive.md").read_text()
+    except OSError:
+        pass
     latest = {}
     for row in forecasts:
         rid = str(row.get("id", ""))
